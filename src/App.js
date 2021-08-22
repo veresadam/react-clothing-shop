@@ -1,4 +1,4 @@
-import React, { Component } from 'react';
+import React, { useEffect } from 'react';
 import { Switch, Route, Redirect } from 'react-router-dom';
 import { connect } from 'react-redux';
 import { createStructuredSelector } from 'reselect';
@@ -9,39 +9,17 @@ import Header from './components/header/header.component';
 import SignInAndSignUpPage from './pages/sign-in-and-sign-up/sign-in-and-sign-up.component';
 import CheckoutPage from './components/checkout/checkout.component';
 
-import { auth, createUserProfileDocument } from './firebase/firebase.utils';
-import { setCurrentUser } from './redux/user/user.actions'
-import { selectCurrentUser } from './redux/user/user.selectors'
+import { selectCurrentUser } from './redux/user/user.selectors';
+import { checkUserSession } from './redux/user/user.actions';
+import { useEffect } from 'react';
 
-class App extends Component {
+const App = ({checkUserSession, currentUser}) =>  {
 
-  unsubscribeFromAuth = null;
+  useEffect(() => {
+    checkUserSession();
+  }, [checkUserSession])
 
-  componentDidMount() {
-    const { setCurrentUser } = this.props;
-
-    this.unsubscribeFromAuth = auth.onAuthStateChanged( async userAuth => {
-      if (userAuth) {
-        const userRef =  await createUserProfileDocument(userAuth);
-
-        userRef.onSnapshot(snapshot => {
-          setCurrentUser({
-            id: snapshot.id,
-            ...snapshot.data()
-          });
-        });
-      } else {
-        setCurrentUser( userAuth )
-      }
-    });
-  }
-
-  componentWillUnmount() {
-    this.unsubscribeFromAuth();
-  }
-
-  render() {
-    return (
+  return (
     <div>
       <Header/>
       <Switch>
@@ -50,7 +28,7 @@ class App extends Component {
         <Route exact path = '/checkout' component = { CheckoutPage } />
         <Route exact path = '/signin'
         render = {() =>
-          this.props.currentUser ? (
+          currentUser ? (
           <Redirect to = '/' />
           ) : (
           <SignInAndSignUpPage />
@@ -60,15 +38,14 @@ class App extends Component {
       </Switch>
     </div>
   );
-  }
 }
 
 const mapStateToProps = createStructuredSelector({
   currentUser: selectCurrentUser
 });
 
-const mapDispatchToProps = dispatch => ({
-  setCurrentUser: user => dispatch(setCurrentUser(user))
-});
+const mapDispatchToProps = dispatch =>({
+  checkUserSession: () => dispatch(checkUserSession())
+})
 
 export default connect(mapStateToProps, mapDispatchToProps)(App);
